@@ -3,7 +3,6 @@ import { BackButton } from '../objects/Buttons/BackButton'
 import { NewGameButton } from '../objects/Buttons/NewGameButton'
 
 export class VictoryScene extends Phaser.Scene {
-  private startKey: Phaser.Input.Keyboard.Key
   private bitmapTexts: Phaser.GameObjects.BitmapText[] = []
   private bestScore = Number.parseInt(localStorage.getItem('best') as string, 10) || 0
   score: number
@@ -14,8 +13,6 @@ export class VictoryScene extends Phaser.Scene {
   }
 
   init(props: { score: number }): void {
-    this.startKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.S)
-    this.startKey.isDown = false
     this.score = props.score
 
     let bestScore = Math.max(this.score, this.bestScore)
@@ -36,9 +33,7 @@ export class VictoryScene extends Phaser.Scene {
   }
 
   update(): void {
-    if (this.startKey.isDown) {
-      this.scene.start('GameScene')
-    }
+      // this.scene.start('GameScene')
   }
 
   private addImage() {
@@ -59,9 +54,9 @@ export class VictoryScene extends Phaser.Scene {
     })
 
     this.bitmapTexts.push(
-      this.add
-        .bitmapText(this.sys.canvas.width / 2 - 180, this.sys.canvas.height - 100, 'font', 'RETURN  REPLAY', 30)
-        .setTintFill(0xffffff),
+      // this.add
+      //   .bitmapText(this.sys.canvas.width / 2 - 180, this.sys.canvas.height - 100, 'font', 'RETURN  REPLAY', 30)
+      //   .setTintFill(0xffffff),
 
       this.add
         .bitmapText(

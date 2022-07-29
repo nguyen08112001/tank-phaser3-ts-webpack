@@ -6,7 +6,8 @@ export class Enemy extends Phaser.GameObjects.Image {
   body: Phaser.Physics.Arcade.Body
 
   // variables
-  protected health: number
+  protected currentHealth: number
+  protected maxHealth: number
   protected nextShoot: number
   protected damage: number
   protected bulletTexture: string
@@ -36,15 +37,14 @@ export class Enemy extends Phaser.GameObjects.Image {
   setDying() {
     this.body.checkCollision.none = true
     this.createDeadEffectAndSetActive()
-    console.log(this.deadPoint)
     eventsCenter.emit('enemy-dead', this.x, this.y, this.deadPoint)
   }
 
   gotDamage(_x: number, _y: number, _damage: number): void {
-    this.health -= _damage
+    this.currentHealth -= _damage
     this.createGotHitEffect(_x, _y)
     this.reDrawLifebar()
-    if (this.health > 0) {
+    if (this.currentHealth > 0) {
     } else {
       this.setDying()
     }
@@ -74,7 +74,7 @@ export class Enemy extends Phaser.GameObjects.Image {
 
   protected initProperties() {
     // variables
-    this.health = 1
+    this.currentHealth = this.maxHealth = 1
     this.nextShoot = 0
     this.damage = 0.05
     this.shootingDelayTime = 400
@@ -122,8 +122,6 @@ export class Enemy extends Phaser.GameObjects.Image {
   }
   protected initWeapons() {
     // game objects
-
-    console.log(this.damage)
     this.bullets = new BulletsPool(this.scene, {
       texture: this.bulletTexture || 'bulletRed',
       damage: this.damage
@@ -149,12 +147,12 @@ export class Enemy extends Phaser.GameObjects.Image {
     this.updateSmokeEffect()
   }
   private updateSmokeEffect() {
-    if (this.health <= 0) {
+    if (this.currentHealth <= 0) {
       this.stopAllSmokeEffect()
     }
-    if (this.health <= 0.7) {
+    if (this.currentHealth <= 0.7) {
       this.createSmoke()
-    } else if (this.health <= 0.4) {
+    } else if (this.currentHealth <= 0.4) {
       this.whiteSmoke.stop()
       this.darkSmoke.stop()
       this.createFireEffect()
@@ -190,7 +188,7 @@ export class Enemy extends Phaser.GameObjects.Image {
   private reDrawLifebar(): void {
     this.lifeBar.clear()
     this.lifeBar.fillStyle(0xe66a28, 1)
-    this.lifeBar.fillRect(-this.width / 2, this.height / 2, this.width * this.health, 15)
+    this.lifeBar.fillRect(-this.width / 2, this.height / 2, (this.width * this.currentHealth) / this.maxHealth, 15)
     this.lifeBar.lineStyle(2, 0xffffff)
     this.lifeBar.strokeRect(-this.width / 2, this.height / 2, this.width, 15)
     this.lifeBar.setDepth(1)
@@ -209,7 +207,7 @@ export class Enemy extends Phaser.GameObjects.Image {
       duration: 300,
       onComplete: () => {
         this.explosionSound.play()
-        this.health = 0
+        this.currentHealth = 0
         this.active = false
       }
     })

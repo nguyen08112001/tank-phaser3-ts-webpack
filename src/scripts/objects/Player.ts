@@ -9,7 +9,8 @@ export class Player extends Phaser.GameObjects.Container {
   body: Phaser.Physics.Arcade.Body
 
   // variables
-  private health: number
+  private currentHealth: number
+  private maxHealth: number
   private nextShoot: number
   private speed: number
   private nextBomb: number
@@ -55,7 +56,7 @@ export class Player extends Phaser.GameObjects.Container {
   gotHitWithDamage(_x: number, _y: number, _dame: number): void {
     if (this.getShield()) return
 
-    this.health -= _dame
+    this.currentHealth -= _dame
     this.hitSound.play()
     this.scene.cameras.main.shake(20, 0.005)
 
@@ -140,7 +141,7 @@ export class Player extends Phaser.GameObjects.Container {
     this.hitSound = this.scene.sound.add('hit')
   }
   private initProperties() {
-    this.health = 1
+    this.currentHealth = this.maxHealth = 5
     this.nextShoot = 0
     this.nextBomb = 0
     this.speed = 300
@@ -148,6 +149,7 @@ export class Player extends Phaser.GameObjects.Container {
     this.shootingDelayTime = 80
     this.setShield(false)
   }
+
   private initWeaponObject() {
     this.initBombsPool()
     this.initBulletsPool()
@@ -163,14 +165,13 @@ export class Player extends Phaser.GameObjects.Container {
     })
   }
 
-  private createNewBullet() {
-    return new Bullet({
-      scene: this.scene,
-      rotation: this.barrel.rotation,
-      x: this.x,
-      y: this.y,
-      texture: 'bulletBlue',
-      damage: this.damage
+  private setSuperPower() {
+    this.getBullets().children.iterate(bullet => {
+      var _bullet = bullet as Bullet
+      _bullet.createFireEffect()
+      _bullet.setDisplaySize(100, 100)
+      _bullet.body.setSize(500, 500)
+      _bullet.body.checkCollision.none = false
     })
   }
 
@@ -238,6 +239,8 @@ export class Player extends Phaser.GameObjects.Container {
       if (this.moveJoystick?.force != 0) {
         this.tank.rotation = this.moveJoystick?.rotation - Phaser.Math.DegToRad(90)
         this.scene.physics.velocityFromRotation(this.moveJoystick.rotation, this.speed, this.body.velocity)
+      } else {
+        this.body.setVelocity(0)
       }
     } else {
       if (this.moveKeyUp.isDown) {
@@ -341,7 +344,12 @@ export class Player extends Phaser.GameObjects.Container {
     }
     this.lifeBar.clear()
     this.lifeBar.fillStyle(0xe66a28, 1)
-    this.lifeBar.fillRect(-this.tank.width / 2, this.tank.height / 2, this.tank.width * this.health, 15)
+    this.lifeBar.fillRect(
+      -this.tank.width / 2,
+      this.tank.height / 2,
+      (this.tank.width * this.currentHealth) / this.maxHealth,
+      15
+    )
     this.lifeBar.lineStyle(2, 0xffffff)
     this.lifeBar.strokeRect(-this.tank.width / 2, this.tank.height / 2, this.tank.width, 15)
     this.lifeBar.setDepth(2)
@@ -445,11 +453,11 @@ export class Player extends Phaser.GameObjects.Container {
   }
 
   private updateState() {
-    if (this.health > 0) {
-      if (this.health <= 0.7) {
+    if (this.currentHealth > 0) {
+      if (this.currentHealth <= 0.7) {
         this.createSmokeEffect()
       }
-      if (this.health <= 0.4) {
+      if (this.currentHealth <= 0.4) {
         this.stopSmokeEffect()
         this.createFireEffect()
       }

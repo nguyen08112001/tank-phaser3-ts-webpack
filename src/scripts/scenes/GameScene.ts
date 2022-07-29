@@ -11,6 +11,8 @@ import { HugeTank } from '../objects/Enemies/HugeTank'
 import { GhostTank } from '../objects/Enemies/GhostTank'
 
 const kindOfEnemy: string[] = ['BigDamageTank', 'HugeTank', 'GhostTank']
+const kindOfBoxes: string[] = ['barrelRedTop', 'barrelGreySideRust', 'barrelGreyTop']
+
 export class GameScene extends Phaser.Scene {
   //map
   private map: Phaser.Tilemaps.Tilemap
@@ -28,6 +30,7 @@ export class GameScene extends Phaser.Scene {
   //UI
   private scoreText: Phaser.GameObjects.BitmapText
   private score: number
+  private isMobileDevice: boolean
 
   constructor() {
     super({
@@ -45,6 +48,11 @@ export class GameScene extends Phaser.Scene {
   init() {
     this.scene.run('particle-effects')
     this.score = 0
+    if (this.sys.game.device.input.touch) {
+      this.isMobileDevice = true
+    } else {
+      this.isMobileDevice = false
+    }
   }
 
   create(): void {
@@ -52,16 +60,42 @@ export class GameScene extends Phaser.Scene {
 
     this.createMap()
     this.createObjectFromTileMap()
+    this.randomCreateEnemy(5)
+    this.randomCreateBoxes(20)
     this.createColliderAndOverlap()
     this.createUI()
     this.setSound()
-    // this.createMiniMap()
+    this.createMiniMap()
     this.createMainCamera()
     this.initEventListener()
   }
+  private randomCreateBoxes(_numbOfBoxes: number) {
+    const width = this.map.widthInPixels
+    const height = this.map.heightInPixels
+    for (let i = 0; i < _numbOfBoxes; i++) {
+      this.createNewBox(
+        Phaser.Math.Between(0 + 100, width - 100),
+        Phaser.Math.Between(0 + 100, height - 100),
+        kindOfBoxes[Math.floor(Math.random() * kindOfBoxes.length)]
+      )
+    }
+  }
+  private randomCreateEnemy(_numbOfEnemies: number) {
+    const width = this.map.widthInPixels
+    const height = this.map.heightInPixels
+    for (let i = 0; i < _numbOfEnemies; i++) {
+      let x = Phaser.Math.Between(0+ 2000, width - 2000)
+      let y = Phaser.Math.Between(0 + 2000, height - 2000)
+      let newEnemy = this.createNewEnemy(Phaser.Math.Between(0, width), Phaser.Math.Between(0, height));
+      newEnemy.tween.stop()
+      newEnemy.body.setBounce(1, 1)
+      newEnemy.body.setVelocity(Phaser.Math.RND.between(-200, 200), 300)
+    }
+  }
 
   update(): void {
-    console.log(window.innerWidth, window.innerHeight)
+
+    console.log(this.enemies.countActive())
     this.updateScore()
 
     this.player.update()
@@ -70,17 +104,25 @@ export class GameScene extends Phaser.Scene {
       enemy.update(this.player.body.x, this.player.body.y)
     }, this)
 
-    // this.updateMiniMap();
+    this.updateMiniMap();
   }
 
   private createMainCamera() {
     this.cameras.main.startFollow(this.player)
+    if (this.isMobileDevice) {
+      this.cameras.main.setZoom(0.4);
+
+    }
+    else {this.cameras.main.setZoom(0.8)
     this.cameras.main.setBounds(0, 0, this.map.widthInPixels, this.map.heightInPixels)
-    this.cameras.main.setZoom(0.4)
+
+    }
   }
 
   private createMiniMap() {
-    this.minimap = this.cameras.add(0, 10, 400, 400).setZoom(0.2).setName('mini').setAlpha(0.8)
+    if (this.isMobileDevice) return
+
+    this.minimap = this.cameras.add(0, 10, 200, 200).setZoom(0.1).setName('mini').setAlpha(0.8)
     this.minimap.setBackgroundColor(0x002244)
     this.minimap.scrollX = 1600
     this.minimap.scrollY = 300
@@ -206,6 +248,7 @@ export class GameScene extends Phaser.Scene {
     })
 
     this.checkVictory()
+
   }
   private checkVictory() {
     if (this.enemies.countActive() === 1) {
@@ -217,30 +260,35 @@ export class GameScene extends Phaser.Scene {
   }
 
   private setGameOver() {
+    this.time.addEvent({
+      delay: 10000,
+      callback: () => {
+        this.scene.launch('GameOverScene')
+      }
+    })
     this.physics.world.timeScale = 10
     this.time.timeScale = 10
     this.tweens.timeScale = 0.5
     this.cameras.main.setAlpha(0.5)
-    this.scene.launch('GameOverScene')
+    // this.scene.launch('GameOverScene')
   }
 
   private createBombExplodeZone(_x: number, _y: number, _width: number, _height: number, _damage: number) {
-    console.log(_width, _height)
     let zone = this.add.zone(_x, _y, _width, _height)
     this.physics.world.enable(zone, 1) // (0) DYNAMIC (1) STATIC
 
     this.physics.add.overlap(this.enemies, zone, (_enemy: any, _zone: any) => {
-      zone.destroy()
+      // zone.destroy()
       _enemy.gotDamage(_x, _y, _damage)
     })
 
     this.physics.add.overlap(this.player, zone, () => {
-      zone.destroy()
+      // zone.destroy()
       this.player.gotHitWithDamage(_x, _y, _damage)
     })
 
     this.time.addEvent({
-      delay: 20,
+      delay: 50,
       callback: () => {
         zone.destroy()
       }
@@ -256,8 +304,10 @@ export class GameScene extends Phaser.Scene {
   }
 
   private updateMiniMap() {
-    this.minimap.scrollX = Phaser.Math.Clamp(this.player.x - 200, 800, 2000)
-    this.minimap.scrollY = Phaser.Math.Clamp(this.player.y - 200, 800, 1200)
+    if (this.isMobileDevice) return
+
+    this.minimap.scrollX = Phaser.Math.Clamp(this.player.x - 100, 900, 2000)
+    this.minimap.scrollY = Phaser.Math.Clamp(this.player.y - 100, 900, 1200)
   }
 
   private updateScore() {
@@ -267,7 +317,6 @@ export class GameScene extends Phaser.Scene {
   private createObjectFromTileMap(): void {
     this.obstacles = this.add.group({
       /*classType: Obstacle,*/
-      runChildUpdate: true
     })
 
     this.enemies = this.add.group({
@@ -276,7 +325,6 @@ export class GameScene extends Phaser.Scene {
 
     this.boxes = this.add.group({
       /*classType: Enemy*/
-      runChildUpdate: true
     })
 
     // find the object layer in the tilemap named 'objects'
@@ -366,6 +414,8 @@ export class GameScene extends Phaser.Scene {
     }
 
     this.enemies.add(enemy)
+
+    return enemy;
   }
 
   private createNewPlayer(_x: number, _y: number) {

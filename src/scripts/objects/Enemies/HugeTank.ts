@@ -15,6 +15,7 @@ export class HugeTank extends Enemy {
   private customParentProperties() {
     this.deadPoint = 200
     this.damage /= 2
+    this.currentHealth = this.maxHealth = 2
   }
 
   private customConfig() {
@@ -23,9 +24,5 @@ export class HugeTank extends Enemy {
     this.setScale(1.5)
     this.barrel.setScale(1.5)
     this.lifeBar.setScale(1.5)
-  }
-
-  gotDamage(_x: number, _y: number, _damage: number): void {
-    super.gotDamage(_x, _y, _damage / 2)
   }
 }

@@ -48,8 +48,8 @@ export class Box extends Phaser.GameObjects.Image {
   private initImage() {
     // variables
     this.health = 1
-    this.zoneWidth = 400
-    this.zoneHeight = 400
+    this.zoneWidth = 300
+    this.zoneHeight = 300
     this.damage = 1
 
     // image

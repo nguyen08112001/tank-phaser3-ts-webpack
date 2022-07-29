@@ -86,8 +86,7 @@ export class BulletsPool extends Phaser.GameObjects.Group {
   constructor(scene: Phaser.Scene, customBulletConfig: any, config: Phaser.Types.GameObjects.Group.GroupConfig = {}) {
     const defaults: Phaser.Types.GameObjects.Group.GroupConfig = {
       active: false,
-      maxSize: 10,
-      runChildUpdate: true
+      maxSize: 10
     }
 
     super(scene, Object.assign(defaults, config))
