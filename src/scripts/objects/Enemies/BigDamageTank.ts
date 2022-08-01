@@ -34,7 +34,7 @@ export class BigDamageTank extends Enemy {
   private customParentProperties() {
     this.deadPoint = 200
     this.damage = 0.1
-    this.bulletTexture = 'shield-white'
+    this.bulletTexture = 'lightning-ball'
   }
   private customWeapons() {
     this.getBullets().children.iterate(bullet => {

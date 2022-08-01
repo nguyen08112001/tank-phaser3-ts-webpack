@@ -7,6 +7,10 @@ export class Bullet extends Phaser.GameObjects.Image {
   private damage: number
   fireEffect: Phaser.GameObjects.Particles.ParticleEmitter
 
+  setSpeed(_speed: number) {
+    this.speed = _speed
+  }
+
   getDamage() {
     return this.damage
   }
@@ -16,7 +20,10 @@ export class Bullet extends Phaser.GameObjects.Image {
   }
 
   gotHit() {
-    this.fireEffect?.setVisible(false)
+    if (this.fireEffect){
+      this.fireEffect.setVisible(false)
+      this.createGotHitEffect()
+    }
     this.setVisible(false)
     this.setActive(false)
     this.body.enable = false
@@ -32,6 +39,24 @@ export class Bullet extends Phaser.GameObjects.Image {
     this.body.enable = true
 
     this.fireEffect?.setVisible(true)
+  }
+
+  createFireEffect(_frame: string = 'red') {
+    let particles = this.scene.add.particles('flares')
+
+    this.fireEffect = particles
+      .createEmitter({
+        frame: _frame,
+        radial: false,
+        lifespan: 100,
+        speedX: { min: 200, max: 400 },
+        quantity: 4,
+        gravityY: -50,
+        scale: { start: 0.3, end: 0, ease: 'Power3' },
+        blendMode: 'ADD',
+        follow: this
+      })
+      .setVisible(false)
   }
 
   constructor(aParams: IBulletConstructor) {
@@ -60,26 +85,24 @@ export class Bullet extends Phaser.GameObjects.Image {
     // physics
     this.scene.physics.world.enable(this)
 
-    // this.createFireEffect();
+    this.createFireEffect();
   }
 
-  createFireEffect() {
-    let particles = this.scene.add.particles('flares')
-
-    this.fireEffect = particles
+  private createGotHitEffect() {
+    let emitter = this.scene.add
+      .particles('shield-white')
       .createEmitter({
-        frame: 'red',
-        radial: false,
-        lifespan: 100,
-        speedX: { min: 200, max: 400 },
-        quantity: 4,
-        gravityY: -50,
-        scale: { start: 0.6, end: 0, ease: 'Power3' },
+        speed: { min: -800, max: 800 },
+        angle: { min: 0, max: 360 },
+        scale: { start: 0.1, end: 0 },
         blendMode: 'ADD',
-        follow: this
+        //active: false,
+        lifespan: 200,
+        gravityY: 800
       })
-      .setVisible(false)
+      .explode(5, this.x, this.y)
   }
+
 }
 
 export class BulletsPool extends Phaser.GameObjects.Group {

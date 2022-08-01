@@ -13,6 +13,7 @@ export class Enemy extends Phaser.GameObjects.Image {
   protected bulletTexture: string
   protected deadPoint: number
   protected shootingDelayTime: number
+  private canShoot: boolean
 
   // children
   protected barrel: Phaser.GameObjects.Image
@@ -50,34 +51,13 @@ export class Enemy extends Phaser.GameObjects.Image {
     }
   }
 
-  constructor(aParams: IImageConstructor) {
-    super(aParams.scene, aParams.x, aParams.y, aParams.texture, aParams.frame)
-    // this.init();
-    this.scene.add.existing(this)
-    this.once('destroy', this.onDestroy, this)
-  }
-
-  update(_playerX: number, _playerY: number): void {
-    this.reDrawLifebar()
-    if (this.active) {
-      this.updateTankImage(_playerX, _playerY)
-      this.handleShooting()
-    } else {
-      this.destroy()
-    }
-  }
-
-  private onDestroy() {
-    this.barrel.destroy()
-    this.lifeBar.destroy()
-  }
-
   protected initProperties() {
     // variables
     this.currentHealth = this.maxHealth = 1
     this.nextShoot = 0
     this.damage = 0.05
     this.shootingDelayTime = 400
+    this.canShoot = false
   }
 
   protected init() {
@@ -128,17 +108,30 @@ export class Enemy extends Phaser.GameObjects.Image {
     })
   }
 
-  private createNewBullet() {
-    return new Bullet({
-      scene: this.scene,
-      rotation: this.barrel.rotation,
-      x: this.x,
-      y: this.y,
-      texture: 'bulletRed',
-      damage: this.damage
-    })
-      .setActive(false)
-      .setVisible(false)
+  constructor(aParams: IImageConstructor) {
+    super(aParams.scene, aParams.x, aParams.y, aParams.texture, aParams.frame)
+    // this.init();
+    this.scene.add.existing(this)
+    this.once('destroy', this.onDestroy, this)
+  }
+
+  update(_playerX: number, _playerY: number): void {
+    this.updateShootingStatus()
+    this.reDrawLifebar()
+    if (this.active) {
+      this.updateTankImage(_playerX, _playerY)
+      this.handleShooting()
+    } else {
+      this.destroy()
+    }
+  }
+  private updateShootingStatus() {
+    this.setCanShoot(this.scene.cameras.main.worldView.contains(this.x, this.y))
+  }
+
+  private onDestroy() {
+    this.barrel.destroy()
+    this.lifeBar.destroy()
   }
 
   private updateTankImage(_playerX: number, _playerY: number) {
@@ -146,6 +139,7 @@ export class Enemy extends Phaser.GameObjects.Image {
     this.updateBarrel(_playerX, _playerY)
     this.updateSmokeEffect()
   }
+
   private updateSmokeEffect() {
     if (this.currentHealth <= 0) {
       this.stopAllSmokeEffect()
@@ -159,9 +153,14 @@ export class Enemy extends Phaser.GameObjects.Image {
       this.createFireEffect()
     }
   }
+
   private updateLifeBar() {
     this.lifeBar.x = this.x
     this.lifeBar.y = this.y
+  }
+
+  private setCanShoot(_canShoot: boolean) {
+    this.canShoot = _canShoot
   }
 
   private updateBarrel(_playerX: number, _playerY: number) {
@@ -174,6 +173,7 @@ export class Enemy extends Phaser.GameObjects.Image {
   }
 
   private handleShooting(): void {
+    if (!this.canShoot) return
     if (this.scene.time.now > this.nextShoot) {
       let bullet = this.bullets.get(this.x, this.y) as Bullet
 
@@ -245,7 +245,7 @@ export class Enemy extends Phaser.GameObjects.Image {
         y: _y,
         speed: { min: -800, max: 800 },
         angle: { min: 0, max: 360 },
-        scale: { start: 0.5, end: 0 },
+        scale: { start: 1, end: 0, ease: 'Power4'},
         blendMode: 'ADD',
         //active: false,
         lifespan: 200,

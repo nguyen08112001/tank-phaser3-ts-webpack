@@ -83,7 +83,7 @@ export class Bomb extends Phaser.GameObjects.Image {
       angle: { min: 240, max: 300 },
       speed: { min: 200, max: 300 },
       quantity: 6,
-      lifespan: 2000,
+      lifespan: 1000,
       alpha: { start: 1, end: 0 },
       scale: { start: 1.5, end: 0.5 },
       on: false
@@ -92,7 +92,7 @@ export class Bomb extends Phaser.GameObjects.Image {
     particles.createEmitter({
       frame: 'red',
       angle: { start: 0, end: 360, steps: 32 },
-      lifespan: 1000,
+      lifespan: 500,
       speed: 400,
       quantity: 32,
       scale: { start: 0.3, end: 0 },
@@ -104,7 +104,7 @@ export class Bomb extends Phaser.GameObjects.Image {
       angle: { min: 240, max: 300 },
       speed: { min: 400, max: 600 },
       quantity: { min: 2, max: 10 },
-      lifespan: 4000,
+      lifespan: 1000,
       alpha: { start: 1, end: 0 },
       scale: { min: 0.05, max: 0.4 },
       rotate: { start: 0, end: 360, ease: 'Back.easeOut' },
@@ -114,7 +114,8 @@ export class Bomb extends Phaser.GameObjects.Image {
 
     particles.createEmitter({
       frame: 'muzzleflash2',
-      lifespan: 200,
+      lifespan: 500,
+      // alpha: { start: 1, end: 0 },
       scale: { start: 2, end: 0 },
       rotate: { start: 0, end: 180 },
       on: false

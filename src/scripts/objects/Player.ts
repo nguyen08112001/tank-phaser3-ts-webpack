@@ -163,23 +163,22 @@ export class Player extends Phaser.GameObjects.Container {
       texture: 'bulletBlue',
       damage: this.damage
     })
-  }
 
-  private setSuperPower() {
     this.getBullets().children.iterate(bullet => {
       var _bullet = bullet as Bullet
-      _bullet.createFireEffect()
-      _bullet.setDisplaySize(100, 100)
-      _bullet.body.setSize(500, 500)
-      _bullet.body.checkCollision.none = false
+      _bullet.createFireEffect('blue')
+      // _bullet.setTexture('lightning-ball')
+      // _bullet.setDisplaySize(100, 100)
+      // _bullet.body.setSize(500, 500)
     })
+    
   }
 
   private initContainer(texture: string) {
     //tank
     this.tank = this.scene.add.image(0, 0, texture)
     this.tank.setOrigin(0.5, 0.5)
-    this.tank.setDepth(0)
+    this.tank.setDepth(10)
     this.tank.angle = 180
     this.add(this.tank)
 
@@ -196,6 +195,14 @@ export class Player extends Phaser.GameObjects.Container {
 
     //shield
     this._shield = this.scene.add.sprite(0, 0, 'shield').setOrigin(0.5, 0.5).setScale(0.3).setDepth(1)
+    this.scene.tweens.add({
+      targets: this._shield,
+      duration: 1000,
+      angle: 90,
+      ease: "Power0",
+      yoyo: true,
+      repeat: -1,
+    })
     this.add(this._shield)
   }
 
@@ -214,17 +221,6 @@ export class Player extends Phaser.GameObjects.Container {
         this.nextBomb = this.scene.time.now + 1000
       }
     }
-  }
-
-  private createNewBomb() {
-    return new Bomb({
-      scene: this.scene,
-      rotation: this.barrel.rotation,
-      x: this.x,
-      y: this.y,
-      texture: 'bomb',
-      damage: 100
-    })
   }
 
   private handleInput() {

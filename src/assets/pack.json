@@ -83,6 +83,15 @@
             },
             {
                 "type": "image",
+                "key": "lightning-ball",
+                "url": "./assets/sprites/lightning-ball.png"
+            }, {
+                "type": "image",
+                "key": "lightning-vector",
+                "url": "./assets/sprites/lightning-vector.png"
+            },
+            {
+                "type": "image",
                 "key": "shield-white",
                 "url": "./assets/sprites/shieldWhite.png"
             },
