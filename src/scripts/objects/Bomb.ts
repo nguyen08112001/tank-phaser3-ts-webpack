@@ -6,8 +6,7 @@ export class Bomb extends Phaser.GameObjects.Image {
 
   private speed: number
   private damage: number
-  private zoneWidth: number
-  private zoneHeight: number
+  private zoneRadius: number
 
   reInitWithAngle(_rotation: number) {
     this.rotation = _rotation
@@ -45,9 +44,8 @@ export class Bomb extends Phaser.GameObjects.Image {
   private init(): void {
     // variables
     this.speed = 1000
-    this.damage = 1
-    this.zoneWidth = 300
-    this.zoneHeight = 300
+    this.damage = 0.5
+    this.zoneRadius = 300
 
     // image
     this.setOrigin(0.5, 0.5)
@@ -126,7 +124,7 @@ export class Bomb extends Phaser.GameObjects.Image {
   }
 
   private pushCreateDeadZoneEvent() {
-    eventsCenter.emit('bomb-explode', this.x, this.y, this.zoneWidth, this.zoneHeight, this.damage)
+    eventsCenter.emit('bomb-explode', this.x, this.y, this.zoneRadius, this.damage)
   }
 }
 

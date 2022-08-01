@@ -150,9 +150,10 @@ export class Enemy extends Phaser.GameObjects.Image {
     if (this.currentHealth <= 0) {
       this.stopAllSmokeEffect()
     }
-    if (this.currentHealth <= 0.7) {
+    if (this.currentHealth / this.maxHealth <= 0.7) {
       this.createSmoke()
-    } else if (this.currentHealth <= 0.4) {
+    }
+    if (this.currentHealth / this.maxHealth <= 0.4) {
       this.whiteSmoke.stop()
       this.darkSmoke.stop()
       this.createFireEffect()

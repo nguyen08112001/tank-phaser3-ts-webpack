@@ -33,11 +33,11 @@ export class VictoryScene extends Phaser.Scene {
   }
 
   update(): void {
-      // this.scene.start('GameScene')
+    // this.scene.start('GameScene')
   }
 
   private addImage() {
-    let img = this.add.image(this.sys.canvas.width / 2, this.sys.canvas.height / 2, 'victory').setScale(2)
+    let img = this.add.image(this.sys.canvas.width / 2, this.sys.canvas.height / 2, 'victory').setScale(1)
 
     new BackButton({
       scene: this,
@@ -72,10 +72,10 @@ export class VictoryScene extends Phaser.Scene {
   }
 
   private createFirework() {
-    let p0 = new Phaser.Math.Vector2(600, 300)
-    let p1 = new Phaser.Math.Vector2(600, 0)
-    let p2 = new Phaser.Math.Vector2(1000, 0)
-    let p3 = new Phaser.Math.Vector2(1000, 300)
+    let p0 = new Phaser.Math.Vector2(this.sys.canvas.width / 3, this.sys.canvas.height / 3)
+    let p1 = new Phaser.Math.Vector2(this.sys.canvas.width / 3, 0)
+    let p2 = new Phaser.Math.Vector2(this.sys.canvas.width / 1.5, 0)
+    let p3 = new Phaser.Math.Vector2(this.sys.canvas.width / 1.5, this.sys.canvas.height / 3)
 
     let curve = new Phaser.Curves.CubicBezier(p0, p1, p2, p3)
 

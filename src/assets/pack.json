@@ -28,6 +28,11 @@
             },
             {
                 "type": "image",
+                "key": "arrow",
+                "url": "./assets/sprites/arrow.png"
+            },
+            {
+                "type": "image",
                 "key": "start",
                 "url": "./assets/sprites/start.png"
             },

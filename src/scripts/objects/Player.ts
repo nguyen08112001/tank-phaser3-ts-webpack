@@ -141,7 +141,7 @@ export class Player extends Phaser.GameObjects.Container {
     this.hitSound = this.scene.sound.add('hit')
   }
   private initProperties() {
-    this.currentHealth = this.maxHealth = 5
+    this.currentHealth = this.maxHealth = 2
     this.nextShoot = 0
     this.nextBomb = 0
     this.speed = 300
@@ -242,22 +242,22 @@ export class Player extends Phaser.GameObjects.Container {
       } else {
         this.body.setVelocity(0)
       }
+    }
+    // } else {
+    if (this.moveKeyUp.isDown) {
+      this.body.setVelocityY(-this.speed)
+    } else if (this.moveKeyDown.isDown) {
+      this.body.setVelocityY(this.speed)
     } else {
-      if (this.moveKeyUp.isDown) {
-        this.body.setVelocityY(-this.speed)
-      } else if (this.moveKeyDown.isDown) {
-        this.body.setVelocityY(this.speed)
-      } else {
-        this.body.setVelocityY(0)
-      }
+      this.body.setVelocityY(0)
+    }
 
-      if (this.moveKeyLeft.isDown) {
-        this.body.setVelocityX(-this.speed)
-      } else if (this.moveKeyRight.isDown) {
-        this.body.setVelocityX(this.speed)
-      } else {
-        this.body.setVelocityX(0)
-      }
+    if (this.moveKeyLeft.isDown) {
+      this.body.setVelocityX(-this.speed)
+    } else if (this.moveKeyRight.isDown) {
+      this.body.setVelocityX(this.speed)
+    } else {
+      this.body.setVelocityX(0)
     }
   }
 
@@ -454,10 +454,10 @@ export class Player extends Phaser.GameObjects.Container {
 
   private updateState() {
     if (this.currentHealth > 0) {
-      if (this.currentHealth <= 0.7) {
+      if (this.currentHealth / this.maxHealth <= 0.7) {
         this.createSmokeEffect()
       }
-      if (this.currentHealth <= 0.4) {
+      if (this.currentHealth / this.maxHealth <= 0.4) {
         this.stopSmokeEffect()
         this.createFireEffect()
       }

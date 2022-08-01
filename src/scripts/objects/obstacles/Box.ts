@@ -7,8 +7,7 @@ export class Box extends Phaser.GameObjects.Image {
 
   // variables
   private health: number
-  private zoneWidth: number
-  private zoneHeight: number
+  private zoneRadius: number
   private damage: number
 
   // game objects
@@ -48,8 +47,7 @@ export class Box extends Phaser.GameObjects.Image {
   private initImage() {
     // variables
     this.health = 1
-    this.zoneWidth = 300
-    this.zoneHeight = 300
+    this.zoneRadius = 300
     this.damage = 1
 
     // image
@@ -110,7 +108,7 @@ export class Box extends Phaser.GameObjects.Image {
     particles.emitParticleAt(this.x, this.y)
   }
   private emitCreateDeadZoneEvent() {
-    eventsCenter.emit('bomb-explode', this.x, this.y, this.zoneWidth, this.zoneHeight, this.damage)
+    eventsCenter.emit('bomb-explode', this.x, this.y, this.zoneRadius, this.damage)
   }
 
   private createEmitter(_x: number, _y: number) {
