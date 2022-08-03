@@ -16,6 +16,7 @@ export class Player extends Phaser.GameObjects.Container {
   private nextBomb: number
   private damage: number
   private shootingDelayTime: number
+  private increaseHealthWhenEnemyDead: number
 
   // children
   private barrel: Phaser.GameObjects.Image
@@ -47,7 +48,11 @@ export class Player extends Phaser.GameObjects.Container {
   //effect
   private whiteSmoke: Phaser.GameObjects.Particles.ParticleEmitter
   private darkSmoke: Phaser.GameObjects.Particles.ParticleEmitter
-  private fire: Phaser.GameObjects.Particles.ParticleEmitter
+  private fireEffect: Phaser.GameObjects.Particles.ParticleEmitter
+  circleAround: Phaser.GameObjects.Arc
+  lineToPointer: Phaser.Geom.Line
+  circleMove: Phaser.Geom.Circle
+  arrowMove: Phaser.GameObjects.Image
 
   getBullets(): Phaser.GameObjects.Group {
     return this.bullets
@@ -84,7 +89,7 @@ export class Player extends Phaser.GameObjects.Container {
     this.updateLifebar()
     // this.updateBarrel();
     this.handleInput()
-    this.updateState()
+    this.updateEffectState()
   }
 
   constructor(aParams: IImageConstructor) {
@@ -96,8 +101,22 @@ export class Player extends Phaser.GameObjects.Container {
     this.initSound()
     this.initInput()
     this.initPhysic()
+    this.initHandleEvents()
+    this.initCircleMoveUtil()
 
     this.scene.add.existing(this)
+  }
+
+  private initHandleEvents() {
+    eventsCenter.on('enemy-dead', this.handleEnemyDead, this)
+  }
+
+  private handleEnemyDead() {
+    this.currentHealth += this.increaseHealthWhenEnemyDead;
+    if (this.currentHealth > this.maxHealth) {
+      this.currentHealth = this.maxHealth;
+    }
+    this.createHealingEffect();
   }
 
   private initPhysic() {
@@ -141,13 +160,14 @@ export class Player extends Phaser.GameObjects.Container {
     this.hitSound = this.scene.sound.add('hit')
   }
   private initProperties() {
-    this.currentHealth = this.maxHealth = 2
+    this.currentHealth = this.maxHealth = 20
     this.nextShoot = 0
     this.nextBomb = 0
     this.speed = 300
     this.damage = 0.05
     this.shootingDelayTime = 80
-    this.setShield(false)
+    this.setShield(false);
+    this.increaseHealthWhenEnemyDead = 0.2
   }
 
   private initWeaponObject() {
@@ -177,7 +197,6 @@ export class Player extends Phaser.GameObjects.Container {
     //tank
     this.tank = this.scene.add.image(0, 0, texture)
     this.tank.setOrigin(0.5, 0.5)
-    this.tank.setDepth(10)
     this.tank.angle = 180
     this.add(this.tank)
 
@@ -203,6 +222,32 @@ export class Player extends Phaser.GameObjects.Container {
       repeat: -1
     })
     this.add(this._shield)
+
+    this.circleAround = this.scene.add.circle(0, 0, 100, 0x0000ff).setAlpha(0.1);
+    this.circleAround.setStrokeStyle(1, 0x1a65ac);
+    this.add(this.circleAround)
+
+    this.arrowMove = this.scene.add
+        .image(0,0, 'move-arrow')
+        .setScale(0.15)
+        .setOrigin(0.5, 2)
+        .setDepth(0)
+    this.add(this.arrowMove)
+
+    this.setDepth(10)
+
+  }
+
+  private initCircleMoveUtil() {
+    this.lineToPointer = new Phaser.Geom.Line(
+      this.x, 
+      this.y, 
+      this.scene.input.activePointer.worldX,
+      this.scene.input.activePointer.worldY
+    )
+
+    this.circleMove = new Phaser.Geom.Circle(this.x, this.y, 100)
+
   }
 
   private handleBomb() {
@@ -223,10 +268,27 @@ export class Player extends Phaser.GameObjects.Container {
   }
 
   private handleInput() {
+    this.updateCirCleMove()
     this.handleMove()
     this.updateBarrel()
     this.handleShooting()
     this.handleBomb()
+  }
+  private updateCirCleMove() {
+    
+    this.lineToPointer.setTo(this.x, 
+      this.y, 
+      this.scene.input.activePointer.worldX,
+      this.scene.input.activePointer.worldY
+    )
+
+    this.circleMove.setPosition(this.x, this.y)
+
+    let intersectPoint = Phaser.Geom.Intersects.GetLineToCircle(this.lineToPointer, this.circleMove)
+    let angle = Phaser.Math.Angle.Between(intersectPoint[0]?.x, intersectPoint[0]?.y, this.x, this.y)
+
+    this.arrowMove.angle = (angle + (Math.PI / 2) * 3) * Phaser.Math.RAD_TO_DEG
+
   }
 
   private handleMove() {
@@ -238,7 +300,7 @@ export class Player extends Phaser.GameObjects.Container {
         this.body.setVelocity(0)
       }
     }
-    // } else {
+
     if (this.moveKeyUp.isDown) {
       this.body.setVelocityY(-this.speed)
     } else if (this.moveKeyDown.isDown) {
@@ -254,6 +316,10 @@ export class Player extends Phaser.GameObjects.Container {
     } else {
       this.body.setVelocityX(0)
     }
+
+    this.tank.rotation = this.barrel.rotation;
+    this.scene.physics.velocityFromRotation(this.barrel.rotation - Phaser.Math.DegToRad(90) , this.speed, this.body.velocity)
+
   }
 
   private updateBarrel() {
@@ -274,46 +340,57 @@ export class Player extends Phaser.GameObjects.Container {
   }
 
   private handleShooting(): void {
-    if (!this.isMobileDevice) {
-      if (this.scene.input.activePointer.isDown && this.scene.time.now > this.nextShoot) {
-        let bullet = this.bullets.get(this.x, this.y) as Bullet
+    if (this.isMobileDevice) {
+      this.handleShootingMobile();
+    }
+    else {
+      this.handleShootingPC();
+    }
+  }
+  handleShootingMobile() {
+    if (
+      this.shootingJoystick !== undefined &&
+      this.shootingJoystick?.force !== 0 &&
+      this.scene.time.now > this.nextShoot
+    ) {
+      let bullet = this.bullets.get(this.x, this.y) as Bullet
 
-        if (bullet) {
-          //if bullet exists
-          eventsCenter.emit('change-score', -1)
+      if (bullet) {
+        //if bullet exists
+        eventsCenter.emit('change-score', -1)
 
-          this.shootSound.play({
-            volume: 0.3
-          })
+        this.shootSound.play({
+          volume: 0.3
+        })
 
-          this.addShootingEffect()
-          bullet.reInitWithAngle(this.barrel.rotation)
+        this.addShootingEffect()
+        bullet.reInitWithAngle(this.barrel.rotation)
 
-          this.nextShoot = this.scene.time.now + this.shootingDelayTime
-        }
+        this.nextShoot = this.scene.time.now + this.shootingDelayTime
+      }
+    }
+  }
+  handleShootingPC() {
+    if (this.scene.input.activePointer.isDown) {
+      this.speed = -100;
+      if (this.scene.time.now <= this.nextShoot) return
+      let bullet = this.bullets.get(this.x, this.y) as Bullet
+
+      if (bullet) {
+        //if bullet exists
+        eventsCenter.emit('change-score', -1)
+
+        this.shootSound.play({
+          volume: 0.3
+        })
+
+        this.addShootingEffect()
+        bullet.reInitWithAngle(this.barrel.rotation)
+
+        this.nextShoot = this.scene.time.now + this.shootingDelayTime
       }
     } else {
-      if (
-        this.shootingJoystick !== undefined &&
-        this.shootingJoystick?.force !== 0 &&
-        this.scene.time.now > this.nextShoot
-      ) {
-        let bullet = this.bullets.get(this.x, this.y) as Bullet
-
-        if (bullet) {
-          //if bullet exists
-          eventsCenter.emit('change-score', -1)
-
-          this.shootSound.play({
-            volume: 0.3
-          })
-
-          this.addShootingEffect()
-          bullet.reInitWithAngle(this.barrel.rotation)
-
-          this.nextShoot = this.scene.time.now + this.shootingDelayTime
-        }
-      }
+      this.speed = 300
     }
   }
 
@@ -379,22 +456,21 @@ export class Player extends Phaser.GameObjects.Container {
   }
 
   private setDead() {
-    this.stopAllEffect()
     this.active = false
     this.visible = false
     eventsCenter.emit('player-dead')
   }
 
   private stopAllEffect() {
-    this.fire?.stop()
+    this.fireEffect?.stop()
     this.darkSmoke?.stop()
     this.whiteSmoke?.stop()
   }
 
   private createFireEffect() {
-    if (this.fire) return
+    if (this.fireEffect) return
 
-    this.fire = this.scene.add.particles('fire').createEmitter({
+    this.fireEffect = this.scene.add.particles('fire').createEmitter({
       alpha: { start: 1, end: 0 },
       scale: { start: 0.5, end: 2.5 },
       tint: { start: 0xff945e, end: 0xff945e },
@@ -412,7 +488,7 @@ export class Player extends Phaser.GameObjects.Container {
   }
 
   private createSmokeEffect() {
-    if (this.whiteSmoke) return
+    if (this.whiteSmoke?.on === true) return
 
     this.whiteSmoke = this.scene.add.particles('white-smoke').createEmitter({
       x: 400,
@@ -447,9 +523,13 @@ export class Player extends Phaser.GameObjects.Container {
     this.darkSmoke.stop()
   }
 
-  private updateState() {
+  private updateEffectState() {
     if (this.currentHealth > 0) {
-      if (this.currentHealth / this.maxHealth <= 0.7) {
+      if ( 0.7 < this.currentHealth / this.maxHealth && this.currentHealth / this.maxHealth <= 1) {
+        this.stopAllEffect()
+      }
+      if ( 0.4 < this.currentHealth / this.maxHealth && this.currentHealth / this.maxHealth <= 0.7) {
+        this.fireEffect?.stop()
         this.createSmokeEffect()
       }
       if (this.currentHealth / this.maxHealth <= 0.4) {
@@ -457,7 +537,26 @@ export class Player extends Phaser.GameObjects.Container {
         this.createFireEffect()
       }
     } else {
+      this.stopAllEffect()
       this.setDead()
     }
+  }
+
+  private createHealingEffect() {
+    let particles = this.scene.add.particles('healing-effect');
+    let emitter = particles.createEmitter({
+      x: { min: -100, max: 100 },
+      y: { min: -100, max: 100 },
+      lifespan: 500,
+      speedY: { min: -200, max: -400 },
+      scale: { start: 0.05, end: 0 },
+      quantity: 1,
+      blendMode: 'ADD',
+    })
+    this.add(particles)
+
+    this.scene.time.delayedCall(1000, () => {
+      emitter.stop()
+    })
   }
 }

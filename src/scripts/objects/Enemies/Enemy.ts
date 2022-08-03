@@ -2,7 +2,7 @@ import { Bullet, BulletsPool } from '../Bullet'
 import { IImageConstructor } from '../../interfaces/image.interface'
 import eventsCenter from '../../scenes/EventsCenter'
 
-export class Enemy extends Phaser.GameObjects.Image {
+export class Enemy extends Phaser.GameObjects.Container {
   body: Phaser.Physics.Arcade.Body
 
   // variables
@@ -16,8 +16,11 @@ export class Enemy extends Phaser.GameObjects.Image {
   private canShoot: boolean
 
   // children
+  protected tank: Phaser.GameObjects.Image
   protected barrel: Phaser.GameObjects.Image
   protected lifeBar: Phaser.GameObjects.Graphics
+  private targetHudCircle: Phaser.GameObjects.Image
+
 
   // game objects
   protected tween: Phaser.Tweens.Tween
@@ -36,6 +39,8 @@ export class Enemy extends Phaser.GameObjects.Image {
   }
 
   setDying() {
+    this.lifeBar.setScale(1);
+    this.targetHudCircle.setVisible(false)
     this.body.checkCollision.none = true
     this.createDeadEffectAndSetActive()
     eventsCenter.emit('enemy-dead', this.x, this.y, this.deadPoint)
@@ -86,16 +91,34 @@ export class Enemy extends Phaser.GameObjects.Image {
   }
   protected initContainer() {
     // image
+    this.tank = this.scene.add.image(0,0, 'tankRed')
+    this.add(this.tank)
     this.setDepth(0)
 
     this.barrel = this.scene.add.image(0, 0, 'barrelRed')
     this.barrel.setOrigin(0.5, 1)
-    this.barrel.setDepth(1)
+    this.barrel.setDepth(0)
+    this.add(this.barrel)
+
 
     //sound
     this.explosionSound = this.scene.sound.add('explosion')
 
-    this.lifeBar = this.scene.add.graphics()
+
+    this.targetHudCircle = this.scene.add.image(0,0, 'hud-target-red').setScale(0.5).setVisible(false)
+    this.scene.tweens.add({
+      targets: this.targetHudCircle,
+      duration: 1000,
+      angle: 90,
+      ease: 'Power0',
+      yoyo: true,
+      repeat: -1
+    })
+    this.add(this.targetHudCircle)
+
+    this.lifeBar = this.scene.add.graphics().setDepth(10)
+    this.reDrawLifebar()
+    this.add(this.lifeBar)
 
     // physics
     this.scene.physics.world.enable(this)
@@ -109,9 +132,27 @@ export class Enemy extends Phaser.GameObjects.Image {
   }
 
   constructor(aParams: IImageConstructor) {
-    super(aParams.scene, aParams.x, aParams.y, aParams.texture, aParams.frame)
+    super(aParams.scene, aParams.x, aParams.y)
     // this.init();
     this.scene.add.existing(this)
+    this.setSize(80, 80)
+    
+    this.setInteractive(new Phaser.Geom.Circle(0,0,150), Phaser.Geom.Circle.Contains)
+
+    eventsCenter.on('enemy-over', (gameObject: any) => {
+      if (this == gameObject) {
+        this.targetHudCircle.setVisible(true)
+        this.lifeBar.setScale(2)
+      }
+    })
+    
+    eventsCenter.on('enemy-out', (gameObject: any) => {
+      if (this == gameObject) {
+        this.targetHudCircle.setVisible(false)
+        this.lifeBar.setScale(1)
+      }
+    })
+
     this.once('destroy', this.onDestroy, this)
   }
 
@@ -135,7 +176,7 @@ export class Enemy extends Phaser.GameObjects.Image {
   }
 
   private updateTankImage(_playerX: number, _playerY: number) {
-    this.updateLifeBar()
+    // this.updateLifeBar()
     this.updateBarrel(_playerX, _playerY)
     this.updateSmokeEffect()
   }
@@ -164,8 +205,8 @@ export class Enemy extends Phaser.GameObjects.Image {
   }
 
   private updateBarrel(_playerX: number, _playerY: number) {
-    this.barrel.x = this.x
-    this.barrel.y = this.y
+    // this.barrel.x = this.x
+    // this.barrel.y = this.y
     if (this.active) {
       let angle = Phaser.Math.Angle.Between(this.body.x, this.body.y, _playerX, _playerY)
       this.getBarrel().angle = (angle + Math.PI / 2) * Phaser.Math.RAD_TO_DEG
@@ -189,10 +230,10 @@ export class Enemy extends Phaser.GameObjects.Image {
   private reDrawLifebar(): void {
     this.lifeBar.clear()
     this.lifeBar.fillStyle(0xe66a28, 1)
-    this.lifeBar.fillRect(-this.width / 2, this.height / 2, (this.width * this.currentHealth) / this.maxHealth, 15)
+    this.lifeBar.fillRect(-this.tank.width / 2, this.tank.height / 2, (this.tank.width * this.currentHealth) / this.maxHealth, 15)
     this.lifeBar.lineStyle(2, 0xffffff)
-    this.lifeBar.strokeRect(-this.width / 2, this.height / 2, this.width, 15)
-    this.lifeBar.setDepth(1)
+    this.lifeBar.strokeRect(-this.tank.width / 2, this.tank.height / 2, this.tank.width, 15)
+    this.lifeBar.setDepth(0)
   }
 
   private createDeadEffectAndSetActive() {

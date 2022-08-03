@@ -23,6 +23,21 @@
             },
             {
                 "type": "image",
+                "key": "move-arrow",
+                "url": "./assets/sprites/move-arrow.png"
+            },
+            {
+                "type": "image",
+                "key": "hud-target-red",
+                "url": "./assets/sprites/hud-target-red.png"
+            },
+            {
+                "type": "image",
+                "key": "healing-effect",
+                "url": "./assets/sprites/healing-effect.png"
+            },
+            {
+                "type": "image",
                 "key": "blue-spark",
                 "url": "./assets/sprites/blue.png"
             },

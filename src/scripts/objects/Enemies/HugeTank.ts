@@ -19,7 +19,7 @@ export class HugeTank extends Enemy {
   }
 
   private customConfig() {
-    this.setTint(0x5a5a5a)
+    this.tank.setTint(0x5a5a5a)
     this.barrel.setTint(0x5a5a5a)
     this.setScale(1.5)
     this.barrel.setScale(1.5)

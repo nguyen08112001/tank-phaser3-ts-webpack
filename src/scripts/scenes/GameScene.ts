@@ -61,8 +61,8 @@ export class GameScene extends Phaser.Scene {
 
     this.createMap()
     this.createObjectsFromTileMap()
-    // this.createRandomEnemies(2)
-    // this.createRandomBoxes(10)
+    // this.createRandomEnemies(5)
+    this.createRandomBoxes(10)
     this.createColliderAndOverlap()
     this.createUI()
     this.setSound()
@@ -70,6 +70,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   update(): void {
+    this.input.activePointer.updateWorldPoint(this.cameras.main);
     this.updateObjects()
     this.updateUI()
   }
@@ -131,7 +132,7 @@ export class GameScene extends Phaser.Scene {
       let line = new Phaser.Geom.Line(this.player.x, this.player.y, _enemy.x, _enemy.y)
 
       let intersectPoint = Phaser.Geom.Intersects.GetLineToRectangle(line, this.cameras.main.worldView)
-
+      
       let arrow = this.add
         .image(intersectPoint[0]?.x, intersectPoint[0]?.y, 'arrow')
         .setScale(0.1)
@@ -158,7 +159,7 @@ export class GameScene extends Phaser.Scene {
       this.cameras.main.setZoom(0.4)
     } else {
       this.cameras.main.setZoom(0.8)
-      this.cameras.main.setBounds(0, 0, this.map.widthInPixels, this.map.heightInPixels)
+      // this.cameras.main.setBounds(0, 0, this.map.widthInPixels, this.map.heightInPixels)
     }
   }
 
@@ -174,6 +175,14 @@ export class GameScene extends Phaser.Scene {
   }
   private createUI() {
     this.input.setDefaultCursor('url(./assets/blue.cur), pointer')
+
+    this.input.on('gameobjectover',(pointer, gameObject) => {
+      eventsCenter.emit('enemy-over', gameObject)
+  });
+  
+  this.input.on('gameobjectout',  (pointer, gameObject) => {
+    eventsCenter.emit('enemy-out', gameObject)
+  });
     this.createButton()
     this.createScoreText()
     this.createFindEnemiesUtil()
@@ -268,7 +277,7 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
-  private handleEnemyDead(_x: number, _y: number, _point: number) {
+  private handleEnemyDead(_enemyX: number, _enemyY: number, _point: number) {
     this.time.addEvent({
       delay: 1000,
       callback: () => {
@@ -285,10 +294,16 @@ export class GameScene extends Phaser.Scene {
       }
     })
 
-    const particleEffects = this.scene.get('particle-effects')
-    particleEffects.events.emit('trail-to', {
-      fromX: _x,
-      fromY: _y,
+    eventsCenter.emit('enemy-trail-to-score', {
+      fromX: _enemyX,
+      fromY: _enemyY,
+      toX: this.scoreText.x + this.scoreText.width / 2,
+      toY: this.scoreText.y
+    })
+    
+    eventsCenter.emit('enemy-trail-to-player', {
+      fromX: _enemyX,
+      fromY: _enemyY,
       toX: this.scoreText.x + this.scoreText.width / 2,
       toY: this.scoreText.y
     })

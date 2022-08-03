@@ -1,9 +1,5 @@
-interface TrailToData {
-  fromX: number
-  fromY: number
-  toX: number
-  toY: number
-}
+import { TrailToData } from "../interfaces/trail-to.interface"
+import eventsCenter from "./EventsCenter"
 
 export default class ParticleEffects extends Phaser.Scene {
   constructor() {
@@ -13,7 +9,7 @@ export default class ParticleEffects extends Phaser.Scene {
   create() {
     const particles = this.add.particles('flares')
 
-    this.events.on('trail-to', (data: TrailToData) => {
+    eventsCenter.on('enemy-trail-to-score', (data: TrailToData) => {
       const emitter = particles.createEmitter({
         frame: ['red', 'blue', 'yellow', 'blue'],
         x: data.fromX,
