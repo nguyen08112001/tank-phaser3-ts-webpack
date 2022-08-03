@@ -22,16 +22,25 @@ export class PauseScene extends Phaser.Scene {
   }
 
   create(): void {
-    // this.cameras.main.setBackgroundColor(0x000000);
+    let zone = this.add.zone(
+      this.sys.canvas.width / 2,
+      this.sys.canvas.height / 2,
+      this.sys.canvas.width / 2,
+      this.sys.canvas.height / 2
+    )
+    let block = this.add
+      .image(this.sys.canvas.width / 2, this.sys.canvas.height / 2, 'pause')
+      .setDisplaySize(this.sys.canvas.width / 2, this.sys.canvas.height / 2)
 
-    this.add.image(this.sys.canvas.width / 2, this.sys.canvas.height / 2, 'pause')
-
-    new CloseButton({
+    let closeButton = new CloseButton({
       scene: this,
       x: this.sys.canvas.width - 300,
       y: 230,
       texture: 'close-button'
     })
+
+    Phaser.Display.Align.In.TopRight(closeButton, zone)
+    Phaser.Display.Align.In.Center(block, zone)
 
     new PlayButton({
       scene: this,
@@ -54,7 +63,7 @@ export class PauseScene extends Phaser.Scene {
       texture: 'restart-button'
     })
 
-    this.bitmapTexts.push(this.add.bitmapText(this.sys.canvas.width / 2 - 160, 100, 'font', 'PAUSED', 100))
+    // this.bitmapTexts.push(this.add.bitmapText(this.sys.canvas.width / 2 - 160, 100, 'font', 'PAUSED', 100))
   }
 
   update(): void {

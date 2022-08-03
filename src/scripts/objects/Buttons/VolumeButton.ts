@@ -10,6 +10,7 @@ export class VolumeButton extends Button {
     if (!this.scene.registry.get('hasSound')) {
       this.setTint(0x808080)
     }
+    this.scene.add.existing(this)
   }
 
   create() {}

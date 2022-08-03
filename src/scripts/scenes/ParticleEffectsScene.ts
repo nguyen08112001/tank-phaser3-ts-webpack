@@ -27,8 +27,18 @@ export default class ParticleEffects extends Phaser.Scene {
         blendMode: 'ADD'
       })
 
-      const xVals = [data.fromX, Phaser.Math.Between(0, this.sys.canvas.width), Phaser.Math.Between(0, this.sys.canvas.width), data.toX]
-      const yVals = [data.fromY, Phaser.Math.Between(0, this.sys.canvas.height), Phaser.Math.Between(0, this.sys.canvas.height), data.toY]
+      const xVals = [
+        data.fromX,
+        Phaser.Math.Between(0, this.sys.canvas.width),
+        Phaser.Math.Between(0, this.sys.canvas.width),
+        data.toX
+      ]
+      const yVals = [
+        data.fromY,
+        Phaser.Math.Between(0, this.sys.canvas.height),
+        Phaser.Math.Between(0, this.sys.canvas.height),
+        data.toY
+      ]
 
       this.tweens.addCounter({
         from: 0,

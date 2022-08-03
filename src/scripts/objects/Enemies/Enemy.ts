@@ -245,7 +245,7 @@ export class Enemy extends Phaser.GameObjects.Image {
         y: _y,
         speed: { min: -800, max: 800 },
         angle: { min: 0, max: 360 },
-        scale: { start: 1, end: 0, ease: 'Power4'},
+        scale: { start: 1, end: 0, ease: 'Power4' },
         blendMode: 'ADD',
         //active: false,
         lifespan: 200,

@@ -61,8 +61,8 @@ export class GameScene extends Phaser.Scene {
 
     this.createMap()
     this.createObjectsFromTileMap()
-    this.createRandomEnemies(2)
-    this.createRandomBoxes(50)
+    // this.createRandomEnemies(2)
+    // this.createRandomBoxes(10)
     this.createColliderAndOverlap()
     this.createUI()
     this.setSound()
@@ -141,7 +141,7 @@ export class GameScene extends Phaser.Scene {
       let angle = Phaser.Math.Angle.Between(arrow.x, arrow.y, this.player.x, this.player.y)
       arrow.angle = (angle + (Math.PI / 2) * 2) * Phaser.Math.RAD_TO_DEG
 
-      this.minimap.ignore(arrow)
+      this.minimap?.ignore(arrow)
 
       this.time.addEvent({
         delay: 0,
@@ -482,6 +482,7 @@ export class GameScene extends Phaser.Scene {
 
   private setPauseGame() {
     this.scene.pause()
+    this.cameras.main.setAlpha(0.5)
     this.scene.launch('PauseScene')
   }
 }

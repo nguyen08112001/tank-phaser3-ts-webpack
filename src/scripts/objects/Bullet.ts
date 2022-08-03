@@ -5,7 +5,7 @@ export class Bullet extends Phaser.GameObjects.Image {
 
   private speed: number
   private damage: number
-  fireEffect: Phaser.GameObjects.Particles.ParticleEmitter
+  private fireEffect: Phaser.GameObjects.Particles.ParticleEmitter
 
   setSpeed(_speed: number) {
     this.speed = _speed
@@ -20,7 +20,7 @@ export class Bullet extends Phaser.GameObjects.Image {
   }
 
   gotHit() {
-    if (this.fireEffect){
+    if (this.fireEffect) {
       this.fireEffect.setVisible(false)
       this.createGotHitEffect()
     }
@@ -85,7 +85,7 @@ export class Bullet extends Phaser.GameObjects.Image {
     // physics
     this.scene.physics.world.enable(this)
 
-    this.createFireEffect();
+    this.createFireEffect()
   }
 
   private createGotHitEffect() {
@@ -102,7 +102,6 @@ export class Bullet extends Phaser.GameObjects.Image {
       })
       .explode(5, this.x, this.y)
   }
-
 }
 
 export class BulletsPool extends Phaser.GameObjects.Group {

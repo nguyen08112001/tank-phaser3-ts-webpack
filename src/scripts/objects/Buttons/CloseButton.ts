@@ -6,6 +6,7 @@ export class CloseButton extends Button {
 
   constructor(aParams: IImageConstructor) {
     super(aParams)
+    this.scene.add.existing(this)
   }
 
   public handlePointerDown() {

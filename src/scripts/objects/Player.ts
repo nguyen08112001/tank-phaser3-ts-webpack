@@ -171,7 +171,6 @@ export class Player extends Phaser.GameObjects.Container {
       // _bullet.setDisplaySize(100, 100)
       // _bullet.body.setSize(500, 500)
     })
-    
   }
 
   private initContainer(texture: string) {
@@ -199,9 +198,9 @@ export class Player extends Phaser.GameObjects.Container {
       targets: this._shield,
       duration: 1000,
       angle: 90,
-      ease: "Power0",
+      ease: 'Power0',
       yoyo: true,
-      repeat: -1,
+      repeat: -1
     })
     this.add(this._shield)
   }
