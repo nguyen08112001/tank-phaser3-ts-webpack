@@ -6,7 +6,7 @@ export class HugeTank extends Enemy {
     super(aParams)
     super.initProperties()
     this.customParentProperties()
-    super.init()
+    super.initContainer()
     super.initBehavior()
     this.customConfig()
     super.initWeapons()
