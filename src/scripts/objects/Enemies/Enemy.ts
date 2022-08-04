@@ -21,7 +21,6 @@ export class Enemy extends Phaser.GameObjects.Container {
   protected lifeBar: Phaser.GameObjects.Graphics
   private targetHudCircle: Phaser.GameObjects.Image
 
-
   // game objects
   protected tween: Phaser.Tweens.Tween
   private bullets: BulletsPool
@@ -39,21 +38,21 @@ export class Enemy extends Phaser.GameObjects.Container {
   }
 
   setDying() {
-    this.lifeBar.setScale(1);
+    this.lifeBar.setScale(1)
     this.targetHudCircle.setVisible(false)
     this.body.checkCollision.none = true
     this.createDeadEffectAndSetActive()
     eventsCenter.emit('enemy-dead', this.x, this.y, this.deadPoint)
   }
 
-  gotDamage(_x: number, _y: number, _damage: number): void {
+  gotHitWithDamage(_x: number, _y: number, _damage: number): void {
     this.currentHealth -= _damage
-    this.createGotHitEffect(_x, _y)
-    this.reDrawLifebar()
-    if (this.currentHealth > 0) {
-    } else {
+    if (this.currentHealth < 0) {
+      this.currentHealth = 0;
       this.setDying()
     }
+    this.createGotHitEffect(_x, _y)
+    this.reDrawLifeBar()
   }
 
   protected initProperties() {
@@ -74,6 +73,7 @@ export class Enemy extends Phaser.GameObjects.Container {
 
     this.initBehavior()
   }
+
   protected initBehavior() {
     // tweens
     this.tween = this.scene.tweens.add({
@@ -89,9 +89,10 @@ export class Enemy extends Phaser.GameObjects.Container {
       yoyo: true
     })
   }
+  
   protected initContainer() {
     // image
-    this.tank = this.scene.add.image(0,0, 'tankRed')
+    this.tank = this.scene.add.image(0, 0, 'tankRed')
     this.add(this.tank)
     this.setDepth(0)
 
@@ -100,12 +101,10 @@ export class Enemy extends Phaser.GameObjects.Container {
     this.barrel.setDepth(0)
     this.add(this.barrel)
 
-
     //sound
     this.explosionSound = this.scene.sound.add('explosion')
 
-
-    this.targetHudCircle = this.scene.add.image(0,0, 'hud-target-red').setScale(0.5).setVisible(false)
+    this.targetHudCircle = this.scene.add.image(0, 0, 'hud-target-red').setScale(0.5).setVisible(false)
     this.scene.tweens.add({
       targets: this.targetHudCircle,
       duration: 1000,
@@ -117,17 +116,18 @@ export class Enemy extends Phaser.GameObjects.Container {
     this.add(this.targetHudCircle)
 
     this.lifeBar = this.scene.add.graphics().setDepth(10)
-    this.reDrawLifebar()
     this.add(this.lifeBar)
 
     // physics
     this.scene.physics.world.enable(this)
+
   }
   protected initWeapons() {
     // game objects
     this.bullets = new BulletsPool(this.scene, {
       texture: this.bulletTexture || 'bulletRed',
-      damage: this.damage
+      damage: this.damage,
+      PoolMaxSize: 5
     })
   }
 
@@ -136,16 +136,38 @@ export class Enemy extends Phaser.GameObjects.Container {
     // this.init();
     this.scene.add.existing(this)
     this.setSize(80, 80)
-    
-    this.setInteractive(new Phaser.Geom.Circle(0,0,150), Phaser.Geom.Circle.Contains)
 
+    this.setInteractive(new Phaser.Geom.Circle(0, 0, 150), Phaser.Geom.Circle.Contains)
+    this.createHandleEventsCenter();
+
+    // this.scene.time.addEvent({
+    //   delay: 1000,
+    //   callback: () => {
+        
+    //   },
+    //   repeat: -1
+    // })
+  }
+  
+
+  update(_playerX: number, _playerY: number): void {
+    this.updateShootingStatus()
+    if (this.active) {
+      this.updateTankImage(_playerX, _playerY)
+      this.handleShooting()
+    } else {
+      this.destroy()
+    }
+  }
+
+  private createHandleEventsCenter() {
     eventsCenter.on('enemy-over', (gameObject: any) => {
       if (this == gameObject) {
         this.targetHudCircle.setVisible(true)
         this.lifeBar.setScale(2)
       }
     })
-    
+
     eventsCenter.on('enemy-out', (gameObject: any) => {
       if (this == gameObject) {
         this.targetHudCircle.setVisible(false)
@@ -154,17 +176,6 @@ export class Enemy extends Phaser.GameObjects.Container {
     })
 
     this.once('destroy', this.onDestroy, this)
-  }
-
-  update(_playerX: number, _playerY: number): void {
-    this.updateShootingStatus()
-    this.reDrawLifebar()
-    if (this.active) {
-      this.updateTankImage(_playerX, _playerY)
-      this.handleShooting()
-    } else {
-      this.destroy()
-    }
   }
   private updateShootingStatus() {
     this.setCanShoot(this.scene.cameras.main.worldView.contains(this.x, this.y))
@@ -195,18 +206,11 @@ export class Enemy extends Phaser.GameObjects.Container {
     }
   }
 
-  private updateLifeBar() {
-    this.lifeBar.x = this.x
-    this.lifeBar.y = this.y
-  }
-
   private setCanShoot(_canShoot: boolean) {
     this.canShoot = _canShoot
   }
 
   private updateBarrel(_playerX: number, _playerY: number) {
-    // this.barrel.x = this.x
-    // this.barrel.y = this.y
     if (this.active) {
       let angle = Phaser.Math.Angle.Between(this.body.x, this.body.y, _playerX, _playerY)
       this.getBarrel().angle = (angle + Math.PI / 2) * Phaser.Math.RAD_TO_DEG
@@ -227,10 +231,15 @@ export class Enemy extends Phaser.GameObjects.Container {
     }
   }
 
-  private reDrawLifebar(): void {
+  private reDrawLifeBar(): void {
     this.lifeBar.clear()
     this.lifeBar.fillStyle(0xe66a28, 1)
-    this.lifeBar.fillRect(-this.tank.width / 2, this.tank.height / 2, (this.tank.width * this.currentHealth) / this.maxHealth, 15)
+    this.lifeBar.fillRect(
+      -this.tank.width / 2,
+      this.tank.height / 2,
+      (this.tank.width * this.currentHealth) / this.maxHealth,
+      15
+    )
     this.lifeBar.lineStyle(2, 0xffffff)
     this.lifeBar.strokeRect(-this.tank.width / 2, this.tank.height / 2, this.tank.width, 15)
     this.lifeBar.setDepth(0)

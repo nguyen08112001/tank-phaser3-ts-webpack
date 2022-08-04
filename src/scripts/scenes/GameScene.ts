@@ -70,7 +70,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   update(): void {
-    this.input.activePointer.updateWorldPoint(this.cameras.main);
+    this.input.activePointer.updateWorldPoint(this.cameras.main)
     this.updateObjects()
     this.updateUI()
   }
@@ -132,7 +132,7 @@ export class GameScene extends Phaser.Scene {
       let line = new Phaser.Geom.Line(this.player.x, this.player.y, _enemy.x, _enemy.y)
 
       let intersectPoint = Phaser.Geom.Intersects.GetLineToRectangle(line, this.cameras.main.worldView)
-      
+
       let arrow = this.add
         .image(intersectPoint[0]?.x, intersectPoint[0]?.y, 'arrow')
         .setScale(0.1)
@@ -176,13 +176,13 @@ export class GameScene extends Phaser.Scene {
   private createUI() {
     this.input.setDefaultCursor('url(./assets/blue.cur), pointer')
 
-    this.input.on('gameobjectover',(pointer, gameObject) => {
+    this.input.on('gameobjectover', (pointer, gameObject) => {
       eventsCenter.emit('enemy-over', gameObject)
-  });
-  
-  this.input.on('gameobjectout',  (pointer, gameObject) => {
-    eventsCenter.emit('enemy-out', gameObject)
-  });
+    })
+
+    this.input.on('gameobjectout', (pointer, gameObject) => {
+      eventsCenter.emit('enemy-out', gameObject)
+    })
     this.createButton()
     this.createScoreText()
     this.createFindEnemiesUtil()
@@ -200,7 +200,7 @@ export class GameScene extends Phaser.Scene {
 
   private createScoreText() {
     //add score text
-    this.scoreText = this.add.bitmapText(this.sys.canvas.width / 4 + 50, 50, 'font', 'SCORE: 0', 30)
+    this.scoreText = this.add.bitmapText(this.sys.canvas.width / 4 + 50, 50, 'font', 'SCORE: 0', 30).setOrigin(0.5, 0.5)
     this.scoreText.setScrollFactor(0, 0)
     this.scoreText.setTintFill(0xffffff)
   }
@@ -298,9 +298,9 @@ export class GameScene extends Phaser.Scene {
       fromX: _enemyX,
       fromY: _enemyY,
       toX: this.scoreText.x + this.scoreText.width / 2,
-      toY: this.scoreText.y
+      toY: this.scoreText.y + this.scoreText.height / 2
     })
-    
+
     eventsCenter.emit('enemy-trail-to-player', {
       fromX: _enemyX,
       fromY: _enemyY,
@@ -340,7 +340,7 @@ export class GameScene extends Phaser.Scene {
     }
     this.enemies.children.each((enemy: any) => {
       if (Phaser.Math.Distance.Squared(enemy.x, enemy.y, _x, _y) <= _radius * _radius) {
-        enemy.gotDamage(_x, _y, _damage)
+        enemy.gotHitWithDamage(_x, _y, _damage)
       }
     }, this)
   }
@@ -492,7 +492,7 @@ export class GameScene extends Phaser.Scene {
 
   private playerBulletHitEnemy(bullet: any, enemy: any): void {
     bullet.gotHit()
-    enemy.gotDamage(bullet.x, bullet.y, bullet.getDamage())
+    enemy.gotHitWithDamage(bullet.x, bullet.y, bullet.getDamage())
   }
 
   private setPauseGame() {

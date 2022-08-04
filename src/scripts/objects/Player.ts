@@ -17,6 +17,7 @@ export class Player extends Phaser.GameObjects.Container {
   private damage: number
   private shootingDelayTime: number
   private increaseHealthWhenEnemyDead: number
+  private bombingDelayTime: number
 
   // children
   private barrel: Phaser.GameObjects.Image
@@ -28,14 +29,10 @@ export class Player extends Phaser.GameObjects.Container {
   private bombs: BombsPool
 
   // input
-  private moveKeyLeft: Phaser.Input.Keyboard.Key
-  private moveKeyRight: Phaser.Input.Keyboard.Key
-  private moveKeyUp: Phaser.Input.Keyboard.Key
-  private moveKeyDown: Phaser.Input.Keyboard.Key
   private spaceKey: Phaser.Input.Keyboard.Key
   private moveJoystick: VirtualJoystick
   private shootingJoystick: VirtualJoystick
-  private isMobileDevice: boolean = false
+  private isMobileDevice: boolean
 
   //sound
   private shootSound: Phaser.Sound.BaseSound
@@ -44,15 +41,21 @@ export class Player extends Phaser.GameObjects.Container {
   //utils
   private _shield: Phaser.GameObjects.Sprite
   private hasShield: boolean
+  private circleAround: Phaser.GameObjects.Arc
+  private lineToPointer: Phaser.Geom.Line
 
   //effect
   private whiteSmoke: Phaser.GameObjects.Particles.ParticleEmitter
   private darkSmoke: Phaser.GameObjects.Particles.ParticleEmitter
   private fireEffect: Phaser.GameObjects.Particles.ParticleEmitter
-  circleAround: Phaser.GameObjects.Arc
-  lineToPointer: Phaser.Geom.Line
-  circleMove: Phaser.Geom.Circle
-  arrowMove: Phaser.GameObjects.Image
+  private healingParticles: Phaser.GameObjects.Particles.ParticleEmitterManager
+  private healingEmitter: Phaser.GameObjects.Particles.ParticleEmitter
+  private shootingTween: Phaser.Tweens.Tween
+
+
+  //UI
+  private circleMove: Phaser.Geom.Circle
+  private arrowMove: Phaser.GameObjects.Image
 
   getBullets(): Phaser.GameObjects.Group {
     return this.bullets
@@ -87,7 +90,6 @@ export class Player extends Phaser.GameObjects.Container {
 
   update(): void {
     this.updateLifebar()
-    // this.updateBarrel();
     this.handleInput()
     this.updateEffectState()
   }
@@ -95,48 +97,63 @@ export class Player extends Phaser.GameObjects.Container {
   constructor(aParams: IImageConstructor) {
     super(aParams.scene, aParams.x, aParams.y)
 
-    this.initContainer(aParams.texture)
-    this.initProperties()
-    this.initWeaponObject()
-    this.initSound()
-    this.initInput()
-    this.initPhysic()
-    this.initHandleEvents()
-    this.initCircleMoveUtil()
+    this.createContainer(aParams.texture)
+    this.createProperties()
+    this.createWeaponObject()
+    this.createEffect()
+    this.createSound()
+    this.createInput()
+    this.createPhysic()
+    this.createHandleEvents()
+    this.createCircleMoveUtil()
 
     this.scene.add.existing(this)
+
+    //debug
+    this.scene.time.addEvent({
+      delay: 1000,
+      callback: () => {
+        // this.currentHealth = this.maxHealth * 0.1
+      },
+      repeat: -1
+    })
   }
 
-  private initHandleEvents() {
+  private createEffect() {
+    this.createHealingEffect();
+    this.createShootingEffect();
+    this.createFireEffect();
+    this.createSmokeEffect();
+  }
+
+  private createHandleEvents() {
     eventsCenter.on('enemy-dead', this.handleEnemyDead, this)
   }
 
   private handleEnemyDead() {
-    this.currentHealth += this.increaseHealthWhenEnemyDead;
+    this.currentHealth += this.increaseHealthWhenEnemyDead
     if (this.currentHealth > this.maxHealth) {
-      this.currentHealth = this.maxHealth;
+      this.currentHealth = this.maxHealth
     }
-    this.createHealingEffect();
+    this.playHealingEffect()
   }
 
-  private initPhysic() {
+  private createPhysic() {
     // physics
     this.scene.physics.world.enable(this)
     this.body.setOffset(-30, -30)
   }
-  private initInput() {
+  private createInput() {
     // input
-    this.moveKeyLeft = this.scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.A)
-    this.moveKeyRight = this.scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.D)
-    this.moveKeyUp = this.scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.W)
-    this.moveKeyDown = this.scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.S)
     this.spaceKey = this.scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE)
 
     if (this.scene.sys.game.device.input.touch) {
-      this.scene.input.addPointer(1)
-      this.moveJoystick = this.createJoyStick(-this.scene.sys.canvas.width * 0.2, window.innerHeight)
-      this.shootingJoystick = this.createJoyStick(this.scene.sys.canvas.width * 1.2, window.innerHeight)
       this.isMobileDevice = true
+
+      this.scene.input.addPointer(1)
+      this.moveJoystick = this.createJoyStick(-this.scene.sys.canvas.width * 0.2, this.scene.sys.canvas.height)
+      this.shootingJoystick = this.createJoyStick(this.scene.sys.canvas.width * 1.2, this.scene.sys.canvas.height)
+
       this.moveJoystick.setVisible(true)
       this.shootingJoystick.setVisible(true)
     }
@@ -154,46 +171,51 @@ export class Player extends Phaser.GameObjects.Container {
     })
   }
 
-  private initSound() {
+  private createSound() {
     //sound
     this.shootSound = this.scene.sound.add('shoot')
     this.hitSound = this.scene.sound.add('hit')
   }
-  private initProperties() {
-    this.currentHealth = this.maxHealth = 20
+  private createProperties() {
+    this.currentHealth = this.maxHealth = 2
     this.nextShoot = 0
     this.nextBomb = 0
     this.speed = 300
     this.damage = 0.05
     this.shootingDelayTime = 80
-    this.setShield(false);
-    this.increaseHealthWhenEnemyDead = 0.2
+    this.setShield(false)
+    this.increaseHealthWhenEnemyDead = 0.5
+    this.bombingDelayTime = 1000
   }
 
-  private initWeaponObject() {
-    this.initBombsPool()
-    this.initBulletsPool()
+  private createWeaponObject() {
+    this.createBombsPool()
+    this.createBulletsPool()
   }
 
-  private initBombsPool() {
+  private createBombsPool() {
     this.bombs = new BombsPool(this.scene)
   }
-  private initBulletsPool() {
+
+  private createBulletsPool() {
     this.bullets = new BulletsPool(this.scene, {
       texture: 'bulletBlue',
-      damage: this.damage
+      damage: this.damage,
+      PoolMaxSize: 10
     })
 
     this.getBullets().children.iterate(bullet => {
       var _bullet = bullet as Bullet
       _bullet.createFireEffect('blue')
-      // _bullet.setTexture('lightning-ball')
-      // _bullet.setDisplaySize(100, 100)
-      // _bullet.body.setSize(500, 500)
     })
   }
 
-  private initContainer(texture: string) {
+  private createContainer(texture: string) {
+    //blue circle
+    this.circleAround = this.scene.add.circle(0, 0, 100, 0x0000ff).setAlpha(0.1)
+    this.circleAround.setStrokeStyle(1, 0x1a65ac)
+    this.add(this.circleAround)
+
     //tank
     this.tank = this.scene.add.image(0, 0, texture)
     this.tank.setOrigin(0.5, 0.5)
@@ -203,7 +225,6 @@ export class Player extends Phaser.GameObjects.Container {
     // barrel
     this.barrel = this.scene.add.image(0, 0, 'barrelBlue')
     this.barrel.setOrigin(0.5, 1)
-    this.barrel.setDepth(1)
     this.barrel.angle = 180
     this.add(this.barrel)
 
@@ -212,7 +233,7 @@ export class Player extends Phaser.GameObjects.Container {
     this.add(this.lifeBar)
 
     //shield
-    this._shield = this.scene.add.sprite(0, 0, 'shield').setOrigin(0.5, 0.5).setScale(0.3).setDepth(1)
+    this._shield = this.scene.add.sprite(0, 0, 'shield').setOrigin(0.5, 0.5).setScale(0.3)
     this.scene.tweens.add({
       targets: this._shield,
       duration: 1000,
@@ -223,31 +244,21 @@ export class Player extends Phaser.GameObjects.Container {
     })
     this.add(this._shield)
 
-    this.circleAround = this.scene.add.circle(0, 0, 100, 0x0000ff).setAlpha(0.1);
-    this.circleAround.setStrokeStyle(1, 0x1a65ac);
-    this.add(this.circleAround)
-
-    this.arrowMove = this.scene.add
-        .image(0,0, 'move-arrow')
-        .setScale(0.15)
-        .setOrigin(0.5, 2)
-        .setDepth(0)
+    this.arrowMove = this.scene.add.image(0, 0, 'move-arrow').setScale(0.15).setOrigin(0.5, 2)
     this.add(this.arrowMove)
 
-    this.setDepth(10)
-
+    this.setDepth(1)
   }
 
-  private initCircleMoveUtil() {
+  private createCircleMoveUtil() {
     this.lineToPointer = new Phaser.Geom.Line(
-      this.x, 
-      this.y, 
+      this.x,
+      this.y,
       this.scene.input.activePointer.worldX,
       this.scene.input.activePointer.worldY
     )
 
     this.circleMove = new Phaser.Geom.Circle(this.x, this.y, 100)
-
   }
 
   private handleBomb() {
@@ -255,40 +266,47 @@ export class Player extends Phaser.GameObjects.Container {
       let bomb = this.bombs.get(this.x, this.y) as Bomb
 
       if (bomb) {
-        //if bullet exists
-        eventsCenter.emit('change-score', -10)
+        //if bomb exists
+        eventsCenter.emit('change-score', bomb.getDecreaseScore())
 
-        this.addShootingEffect()
+        this.playShootingEffect()
 
         bomb.reInitWithAngle(this.barrel.rotation)
 
-        this.nextBomb = this.scene.time.now + 1000
+        this.nextBomb = this.scene.time.now + this.bombingDelayTime
       }
     }
   }
 
   private handleInput() {
-    this.updateCirCleMove()
-    this.handleMove()
+
+    this.updateArrowMove()
     this.updateBarrel()
+
+    this.handleMove()
     this.handleShooting()
     this.handleBomb()
+
   }
-  private updateCirCleMove() {
-    
-    this.lineToPointer.setTo(this.x, 
-      this.y, 
-      this.scene.input.activePointer.worldX,
-      this.scene.input.activePointer.worldY
-    )
+  private updateArrowMove() {
+    if (this.isMobileDevice) {
+      let angle = this.tank.rotation
+      this.arrowMove.angle = (angle + (Math.PI / 2) * 2) * Phaser.Math.RAD_TO_DEG
+    } else {
+      this.lineToPointer.setTo(
+        this.x,
+        this.y,
+        this.scene.input.activePointer.worldX,
+        this.scene.input.activePointer.worldY
+      )
 
-    this.circleMove.setPosition(this.x, this.y)
+      this.circleMove.setPosition(this.x, this.y)
 
-    let intersectPoint = Phaser.Geom.Intersects.GetLineToCircle(this.lineToPointer, this.circleMove)
-    let angle = Phaser.Math.Angle.Between(intersectPoint[0]?.x, intersectPoint[0]?.y, this.x, this.y)
+      let intersectPoint = Phaser.Geom.Intersects.GetLineToCircle(this.lineToPointer, this.circleMove)
+      let angle = Phaser.Math.Angle.Between(intersectPoint[0]?.x, intersectPoint[0]?.y, this.x, this.y)
 
-    this.arrowMove.angle = (angle + (Math.PI / 2) * 3) * Phaser.Math.RAD_TO_DEG
-
+      this.arrowMove.angle = (angle + (Math.PI / 2) * 3) * Phaser.Math.RAD_TO_DEG
+    }
   }
 
   private handleMove() {
@@ -299,27 +317,14 @@ export class Player extends Phaser.GameObjects.Container {
       } else {
         this.body.setVelocity(0)
       }
-    }
-
-    if (this.moveKeyUp.isDown) {
-      this.body.setVelocityY(-this.speed)
-    } else if (this.moveKeyDown.isDown) {
-      this.body.setVelocityY(this.speed)
     } else {
-      this.body.setVelocityY(0)
+      this.tank.rotation = this.barrel.rotation
+      this.scene.physics.velocityFromRotation(
+        this.barrel.rotation - Phaser.Math.DegToRad(90),
+        this.speed,
+        this.body.velocity
+      )
     }
-
-    if (this.moveKeyLeft.isDown) {
-      this.body.setVelocityX(-this.speed)
-    } else if (this.moveKeyRight.isDown) {
-      this.body.setVelocityX(this.speed)
-    } else {
-      this.body.setVelocityX(0)
-    }
-
-    this.tank.rotation = this.barrel.rotation;
-    this.scene.physics.velocityFromRotation(this.barrel.rotation - Phaser.Math.DegToRad(90) , this.speed, this.body.velocity)
-
   }
 
   private updateBarrel() {
@@ -341,13 +346,12 @@ export class Player extends Phaser.GameObjects.Container {
 
   private handleShooting(): void {
     if (this.isMobileDevice) {
-      this.handleShootingMobile();
-    }
-    else {
-      this.handleShootingPC();
+      this.handleShootingMobile()
+    } else {
+      this.handleShootingPC()
     }
   }
-  handleShootingMobile() {
+  private handleShootingMobile() {
     if (
       this.shootingJoystick !== undefined &&
       this.shootingJoystick?.force !== 0 &&
@@ -363,16 +367,16 @@ export class Player extends Phaser.GameObjects.Container {
           volume: 0.3
         })
 
-        this.addShootingEffect()
+        this.playShootingEffect()
         bullet.reInitWithAngle(this.barrel.rotation)
 
         this.nextShoot = this.scene.time.now + this.shootingDelayTime
       }
     }
   }
-  handleShootingPC() {
+  private handleShootingPC() {
     if (this.scene.input.activePointer.isDown) {
-      this.speed = -100;
+      this.speed = -100
       if (this.scene.time.now <= this.nextShoot) return
       let bullet = this.bullets.get(this.x, this.y) as Bullet
 
@@ -384,7 +388,7 @@ export class Player extends Phaser.GameObjects.Container {
           volume: 0.3
         })
 
-        this.addShootingEffect()
+        this.playShootingEffect()
         bullet.reInitWithAngle(this.barrel.rotation)
 
         this.nextShoot = this.scene.time.now + this.shootingDelayTime
@@ -394,20 +398,22 @@ export class Player extends Phaser.GameObjects.Container {
     }
   }
 
-  private addShootingEffect() {
-    this.scene.tweens.add({
-      targets: this,
+  private createShootingEffect() {
+    this.shootingTween = this.scene.tweens.add({
+      targets: [this.tank, this.barrel],
       props: { alpha: 0.8 },
-      delay: 0,
-      duration: 5,
+      duration: 100,
       ease: 'Power1',
-      easeParams: null,
-      hold: 0,
-      repeat: 0,
-      repeatDelay: 0,
       yoyo: true,
-      paused: false
+      onComplete: () => {
+        this.tank.setAlpha(1)
+        this.barrel.setAlpha(1)
+      }
     })
+  }
+
+  private playShootingEffect() {
+    this.shootingTween.play();
   }
 
   private updateLifebar(): void {
@@ -415,7 +421,7 @@ export class Player extends Phaser.GameObjects.Container {
       this.lifeBar.destroy()
     }
     this.lifeBar.clear()
-    this.lifeBar.fillStyle(0xe66a28, 1)
+    this.lifeBar.fillStyle(0x1ea7e1, 1)
     this.lifeBar.fillRect(
       -this.tank.width / 2,
       this.tank.height / 2,
@@ -424,7 +430,6 @@ export class Player extends Phaser.GameObjects.Container {
     )
     this.lifeBar.lineStyle(2, 0xffffff)
     this.lifeBar.strokeRect(-this.tank.width / 2, this.tank.height / 2, this.tank.width, 15)
-    this.lifeBar.setDepth(2)
   }
 
   private createGotHitEffect(_x: number, _y: number) {
@@ -435,9 +440,7 @@ export class Player extends Phaser.GameObjects.Container {
       props: {
         alpha: 1
       },
-      duration: 150,
-      repeat: false,
-      onComplete: () => {}
+      duration: 150
     })
 
     let emitter = this.scene.add.particles('blue-spark').createEmitter({
@@ -468,73 +471,74 @@ export class Player extends Phaser.GameObjects.Container {
   }
 
   private createFireEffect() {
-    if (this.fireEffect) return
-
-    this.fireEffect = this.scene.add.particles('fire').createEmitter({
+    this.fireEffect = this.scene.add.particles('fire')
+    .setDepth(10)
+    .createEmitter({
       alpha: { start: 1, end: 0 },
       scale: { start: 0.5, end: 2.5 },
       tint: { start: 0xff945e, end: 0xff945e },
-      speed: 20,
-      // accelerationY: -300,
+      speed: { min: 20, max: 100 },
       angle: { min: -85, max: -95 },
       rotate: { min: -180, max: 180 },
       lifespan: { min: 1000, max: 1100 },
       blendMode: 'ADD',
       frequency: 110,
-      x: 400,
-      y: 300,
-      follow: this
+      follow: this,
+      on: false,
     })
   }
 
-  private createSmokeEffect() {
-    if (this.whiteSmoke?.on === true) return
+  private playFireEffect() {
+    this.fireEffect.on = true
+  }
 
-    this.whiteSmoke = this.scene.add.particles('white-smoke').createEmitter({
-      x: 400,
-      y: 300,
+  private createSmokeEffect() {
+    this.whiteSmoke = this.scene.add.particles('white-smoke').setDepth(10).createEmitter({
       speed: { min: 20, max: 100 },
       angle: { min: 0, max: 360 },
       scale: { start: 1, end: 0 },
       alpha: { start: 0, end: 0.5 },
       lifespan: 2000,
-      //active: false,
-      follow: this
+      follow: this,
+      on: false
     })
     this.whiteSmoke.reserve(1000)
 
     this.darkSmoke = this.scene.add.particles('dark-smoke').createEmitter({
-      x: 400,
-      y: 300,
       speed: { min: 20, max: 100 },
       angle: { min: 0, max: 360 },
       scale: { start: 1, end: 0 },
       alpha: { start: 0, end: 0.1 },
       blendMode: 'SCREEN',
       lifespan: 2000,
-      //active: false
-      follow: this
+      follow: this,
+      on: false
     })
     this.darkSmoke.reserve(1000)
   }
 
+  private playSmokeEffect() {
+    this.whiteSmoke.on = true
+    this.darkSmoke.on = true
+  }
+
   private stopSmokeEffect() {
-    this.whiteSmoke.stop()
-    this.darkSmoke.stop()
+    this.whiteSmoke?.stop()
+    this.darkSmoke?.stop()
   }
 
   private updateEffectState() {
     if (this.currentHealth > 0) {
-      if ( 0.7 < this.currentHealth / this.maxHealth && this.currentHealth / this.maxHealth <= 1) {
+      if (0.7 < this.currentHealth / this.maxHealth && this.currentHealth / this.maxHealth <= 1) {
         this.stopAllEffect()
       }
-      if ( 0.4 < this.currentHealth / this.maxHealth && this.currentHealth / this.maxHealth <= 0.7) {
+      if (0.4 < this.currentHealth / this.maxHealth && this.currentHealth / this.maxHealth <= 0.7) {
         this.fireEffect?.stop()
-        this.createSmokeEffect()
+        this.playSmokeEffect()
       }
       if (this.currentHealth / this.maxHealth <= 0.4) {
         this.stopSmokeEffect()
-        this.createFireEffect()
+        this.playFireEffect()
       }
     } else {
       this.stopAllEffect()
@@ -543,20 +547,27 @@ export class Player extends Phaser.GameObjects.Container {
   }
 
   private createHealingEffect() {
-    let particles = this.scene.add.particles('healing-effect');
-    let emitter = particles.createEmitter({
+    this.healingParticles = this.scene.add.particles('healing-effect')
+    this.healingEmitter = this.healingParticles.createEmitter({
       x: { min: -100, max: 100 },
       y: { min: -100, max: 100 },
       lifespan: 500,
       speedY: { min: -200, max: -400 },
       scale: { start: 0.05, end: 0 },
       quantity: 1,
-      blendMode: 'ADD',
+      blendMode: 'ADD'
     })
-    this.add(particles)
+    this.healingEmitter.stop()
+    this.add(this.healingParticles)
+  }
 
-    this.scene.time.delayedCall(1000, () => {
-      emitter.stop()
+  private playHealingEffect() {
+    this.healingEmitter.start()
+    this.scene.time.addEvent({
+      delay: 1000,
+      callback: () => {
+        this.healingEmitter.stop()
+      }
     })
   }
 }

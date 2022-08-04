@@ -39,7 +39,7 @@ export class BigDamageTank extends Enemy {
   private customWeapons() {
     this.getBullets().children.iterate(bullet => {
       var _bullet = bullet as Bullet
-      _bullet.createFireEffect()
+      _bullet.createFireEffect('blue')
       // _bullet.setTexture('shield-white'),
       _bullet.setDisplaySize(100, 100)
       _bullet.body.setSize(500, 500)

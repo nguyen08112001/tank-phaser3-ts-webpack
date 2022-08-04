@@ -7,6 +7,7 @@ export class Bomb extends Phaser.GameObjects.Image {
   private speed: number
   private damage: number
   private zoneRadius: number
+  private decreaseScore: number
 
   reInitWithAngle(_rotation: number) {
     this.rotation = _rotation
@@ -18,6 +19,10 @@ export class Bomb extends Phaser.GameObjects.Image {
     this.body.enable = true
 
     this.initExploreCounter()
+  }
+
+  getDecreaseScore() {
+    return this.decreaseScore
   }
 
   constructor(aParams: IBulletConstructor) {
@@ -46,6 +51,7 @@ export class Bomb extends Phaser.GameObjects.Image {
     this.speed = 1000
     this.damage = 0.5
     this.zoneRadius = 300
+    this.decreaseScore = -20
 
     // image
     this.setOrigin(0.5, 0.5)

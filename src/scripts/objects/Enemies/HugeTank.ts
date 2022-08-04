@@ -6,7 +6,7 @@ export class HugeTank extends Enemy {
     super(aParams)
     super.initProperties()
     this.customParentProperties()
-    super.initContainer()
+    super.init()
     super.initBehavior()
     this.customConfig()
     super.initWeapons()
@@ -22,7 +22,5 @@ export class HugeTank extends Enemy {
     this.tank.setTint(0x5a5a5a)
     this.barrel.setTint(0x5a5a5a)
     this.setScale(1.5)
-    this.barrel.setScale(1.5)
-    this.lifeBar.setScale(1.5)
   }
 }

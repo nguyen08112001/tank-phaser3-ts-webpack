@@ -1,5 +1,5 @@
-import { TrailToData } from "../interfaces/trail-to.interface"
-import eventsCenter from "./EventsCenter"
+import { TrailToData } from '../interfaces/trail-to.interface'
+import eventsCenter from './EventsCenter'
 
 export default class ParticleEffects extends Phaser.Scene {
   constructor() {
